@@ -1,0 +1,74 @@
+name: "⚡ F71 Instance Deployment Win10"
+
+on:
+  workflow_dispatch:
+    inputs:
+      INSTANCE:
+        description: "Instance number to deploy (e.g., 1, 2, 3...)"
+        required: true
+        default: "1"
+
+jobs:
+  deploy-f71:
+    name: "🚀 Deploy F71 Instance ${{ github.event.inputs.INSTANCE }}"
+    runs-on: windows-2022
+
+    env:
+      INSTANCE_ID: ${{ github.event.inputs.INSTANCE }}
+      GHB_SECRET: ${{ secrets.GHB_SECRET }}
+      TNL_SECRET: ${{ secrets.TNL_SECRET }}
+      REPO: ${{ github.repository }}
+      WORKFLOW_FILE: "f71.yml"
+      DEPLOYMENT_ID: ${{ github.run_id }}
+
+    steps:
+      - name: 📌 Deployment Parameters
+        shell: pwsh
+        run: |
+          $prevInstance = [int]$env:INSTANCE_ID - 1
+          Write-Host "==============================================="
+          Write-Host "🔹 F71 Instance     : $env:INSTANCE_ID"
+          Write-Host "🔢 Previous Instance     : $prevInstance"
+          Write-Host "📦 GitHub Repository     : $env:REPO"
+          Write-Host "🔁 Deployment Workflow   : $env:WORKFLOW_FILE"
+          Write-Host "🆔 Deployment ID         : $env:DEPLOYMENT_ID"
+          Write-Host "==============================================="
+
+      - name: 🔐 Validate Secrets
+        shell: pwsh
+        run: |
+          if (-not $env:GHB_SECRET) {
+            Write-Error "❌ Missing GitHub Secret: GHB_SECRET"
+            exit 1
+          }
+          if (-not $env:TNL_SECRET) {
+            Write-Error "❌ Missing Ngrok Auth Token: TNL_SECRET"
+            exit 1
+          }
+          Write-Host "✅ All required secrets validated successfully"
+
+      - name: 📥 Download F71-instance.ps1
+        shell: pwsh
+        run: |
+          $url = "https://gitlab.com/sagianano/f71-enterprise/-/raw/main/F71-instance.ps1"
+          Write-Host "🌐 Downloading F71-instance.ps1..."
+          Invoke-WebRequest -Uri $url -OutFile "F71-instance.ps1" -UseBasicParsing
+          if (!(Test-Path "./F71-instance.ps1")) {
+            Write-Error "❌ Failed to download F71-instance.ps1"
+            exit 1
+          }
+          Write-Host "✅ F71-instance.ps1 downloaded successfully"
+
+      - name: ⚔️ Execute F71 Instance Script
+        shell: pwsh
+        run: |
+          Write-Host "🚦 Initiating F71-instance.ps1"
+          powershell.exe -ExecutionPolicy Bypass -File ".\F71-instance.ps1"
+
+      - name: 💠 Final Status
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "✅ F71 Instance $env:INSTANCE_ID completed execution."
+          Write-Host "🔋 Powered by: F71"
+          Write-Host "🏁 F71 deployment executed with tactical precision."
